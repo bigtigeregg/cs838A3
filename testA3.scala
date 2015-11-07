@@ -55,8 +55,16 @@ object testA3 {
 
     val graph = Graph(words, connect)
 
+
+    def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
+      val p = new java.io.PrintWriter(f)
+      try { op(p) } finally { p.close() }
+    }
+
+
     //Q1
     val Q1num = graph.triplets.map(triplet => (triplet.srcAttr.length,triplet.dstAttr.length)).filter{case(a,b) => a>b}.count
+    printToFile(new File("output1")) { p => p.println(Q1num)}
 
     //Q2
     val Q2total: VertexRDD[(Int,Int)] = graph.aggregateMessages[(Int,Int)](
@@ -68,7 +76,9 @@ object testA3 {
       if(a._2._1 > b._2._1 || (a._2._1 == b._2._1 && a._2._2>b._2._2)) a else b
     }
 
-    Q2total.reduce(max)
+    val Q2res = Q2total.reduce(max)
+    printToFile(new File("output2")) { p => p.println(Q2res)}
+
 
     //Q3
     val Q3total: VertexRDD[(Int,Double)] = graph.aggregateMessages[(Int,Double)](
@@ -77,14 +87,19 @@ object testA3 {
       )
     val Q3res: VertexRDD[Double] = Q3total.mapValues( (id, value) => value match { case (count, total) => total / count } )
     Q3res.collect.foreach(println)
-
+    printToFile(new File("output3")) { p => Q3res.collect.foreach(p.println)}
+ 
+  
     //Q4
     val terms = graph.vertices.map(x => x._2)
     val wc = terms.flatMap(line => line)
     val mostPopularVertex = wc.map(word => (word, 1)).reduceByKey((a,b) => a+b).map(x => (x._2, x._1)).sortByKey(false).take(1)(0)._2 // return: String "new"
+    printToFile(new File("output4")) { p => p.println(mostPopularVertex)}
     
     //Q6
-    graph.vertices.filter(v => v._2 contains mostPopularVertex).count // return: 189
+    val Q6res = graph.vertices.filter(v => v._2 contains mostPopularVertex).count // return: 189
+    printToFile(new File("output6")) { p => p.println(Q6res)}
+    
     
     sc.stop()
 
